@@ -10,50 +10,19 @@
 | Facebook Ads     | 7.21s       | 7.11s   | 2.83s   | Polars  |
 | Facebook Posts   | 0.76s       | 0.18s   | 0.28s   | Pandas  |
 
-### Technical Architecture Comparison
-
-| Library     | Core Language | Key Technologies | Parallelization | Memory Model |
-|-------------|--------------|------------------|-----------------|--------------|
-| **Pure Python** | Python (Interpreted) | Standard library only | None (GIL limited) | Object-based |
-| **Pandas** | C/Cython + Python | NumPy, C extensions | Limited (single-threaded) | Object + NumPy arrays |
-| **Polars** | Rust + Python bindings | Apache Arrow, SIMD | Multi-threaded | Columnar (Arrow) |
-
-### Speed Explanation by Architecture
-
-**Why Polars is Fastest:**
-- **Rust compilation:** Code compiles to optimized machine code with zero-cost abstractions
-- **Parallel processing:** Automatically uses all CPU cores for data operations
-- **Memory efficiency:** Arrow format reduces memory usage by 2-10x compared to object storage
-- **Query optimization:** Lazy evaluation eliminates redundant computations
-- **Cache-friendly:** Columnar storage improves CPU cache hit rates
-
-**Why Pandas is Fast (but limited):**
-- **C-level operations:** Core algorithms implemented in C for speed
-- **Vectorization:** NumPy arrays enable SIMD operations on numeric data
-- **Mature optimizations:** Decades of optimization for common data operations
-- **Single-threaded bottleneck:** Cannot utilize multiple cores for most operations
-- **Memory overhead:** Mixed Python objects and arrays increase memory usage
-
-**Why Pure Python is Slow:**
-- **Interpretation overhead:** Each line parsed and executed at runtime
-- **No vectorization:** Operations process one element at a time
-- **Dynamic typing cost:** Runtime type checking for every operation
-- **Manual implementation:** No optimized algorithms for statistical operations
-- **Memory inefficiency:** Python objects have significant per-item overhead
-
 ### Performance Analysis by Dataset Size
 
 - **Small datasets (<20K rows):** Pandas and Polars perform similarly, both significantly outperforming Pure Python
 - **Medium datasets (20-50K rows):** Minimal difference between Pandas and Polars
 - **Large datasets (100K+ rows):** Polars demonstrates clear performance advantages due to parallelization
 
-### Technical Foundation and Speed Factors
+### Technical Foundation and Speed Explanation
 
-**Polars** is built in **Rust** and compiles to native machine code, enabling multi-threaded operations across all CPU cores. Uses Apache Arrow columnar format for memory efficiency.
+**Polars (Rust-based):** Built in Rust and compiled to native machine code. Uses multi-threaded operations and Apache Arrow columnar format for memory efficiency. Fastest for large datasets due to parallel processing across CPU cores.
 
-**Pandas** is built with **C/Cython** core and leverages NumPy for vectorized operations, but is mostly single-threaded. Provides excellent performance through compiled C algorithms.
+**Pandas (C/Python hybrid):** Core operations implemented in C with Python bindings. Uses NumPy for vectorized operations but is mostly single-threaded. Fast for most datasets but limited by single-core processing.
 
-**Pure Python** uses the **interpreted Python** runtime with no compiled optimizations, processing data element-by-element rather than in vectorized batches.
+**Pure Python (Interpreted):** Standard Python interpreter with no compiled optimizations. Processes data element-by-element through loops. Slowest due to interpretation overhead and lack of vectorization.
 
 ---
 
@@ -79,26 +48,11 @@ Achieving consistent statistical outputs across all three approaches required ca
 
 **Which method delivered optimal performance?**
 
-**Best Overall: Polars** - Built in Rust, a systems programming language that compiles to native machine code. Polars leverages:
-- **Multi-threaded parallelism:** Automatically distributes operations across all available CPU cores
-- **Apache Arrow columnar format:** Memory-efficient storage that improves cache locality and reduces memory usage
-- **Lazy evaluation:** Query optimization that minimizes unnecessary computations
-- **SIMD instructions:** Single Instruction, Multiple Data operations for vectorized processing
-- **Zero-copy operations:** Minimizes memory allocation and data copying
+**Best Overall: Polars** - Rust-based implementation with multi-threaded operations and columnar memory storage. Superior performance for large datasets due to parallel processing.
 
-**Good Balance: Pandas** - Built primarily in C and Cython with Python bindings. Core performance features include:
-- **NumPy integration:** Leverages C-based array operations for mathematical computations
-- **Vectorized operations:** Processes entire arrays at once instead of element-by-element
-- **Optimized algorithms:** Uses efficient C implementations for sorting, grouping, and aggregation
-- **Single-threaded limitation:** Most operations use only one CPU core, limiting scalability
-- **Memory overhead:** Object-based storage can consume more memory than columnar formats
+**Good Balance: Pandas** - C-based core with vectorized operations. Excellent for most datasets but single-threaded limitations affect very large data processing.
 
-**Least Efficient: Pure Python** - Interpreted language with significant performance limitations:
-- **Interpreted execution:** Code is executed line-by-line at runtime rather than compiled
-- **Global Interpreter Lock (GIL):** Prevents true multi-threading for CPU-bound operations
-- **Dynamic typing overhead:** Runtime type checking adds computational cost
-- **Loop-based processing:** Manual iteration through data without vectorization
-- **No optimization:** Lacks compiled optimizations available in C/Rust implementations
+**Least Efficient: Pure Python** - Interpreted execution with element-by-element processing. Lacks vectorization and compiled optimizations, resulting in slower performance as data size increases.
 
 ### 4. Recommendation for Junior Data Analysts
 
@@ -135,30 +89,8 @@ Reserve **Pure Python** for educational purposes to understand underlying statis
 
 **Polars Challenges:**
 - **Syntax differences:** Required learning new API patterns, particularly for complex grouping operations
-- **Data type handling:** Addressed through Polars-specific type casting methods  
+- **Data type handling:** Addressed through Polars-specific type casting methods
 - **Null management:** Implemented using `.drop_nulls()` and polars-native null handling
-- **Rust dependency:** Installation requires Rust toolchain compilation (handled automatically via pip)
-- **Smaller ecosystem:** Fewer third-party integrations compared to pandas
-
-### Technical Implementation Details
-
-**Pure Python Implementation:**
-- **Custom statistics functions:** Manual calculation of mean, standard deviation using `math.sqrt()` and loops
-- **Memory management:** List comprehensions and dictionary operations for data aggregation
-- **Type handling:** Explicit `isinstance()` checks and `try/except` blocks for numeric conversion
-- **No dependencies:** Uses only built-in modules (`csv`, `collections`, `math`, `time`)
-
-**Pandas Implementation:**
-- **Built-in methods:** Leveraged `.describe()`, `.value_counts()`, `.groupby()` for statistics
-- **Type inference:** Used `.select_dtypes()` with specific dtype strings instead of NumPy types
-- **Missing data:** Handled with `.dropna()`, `.isnull()`, and pandas-native null detection
-- **Single dependency:** Only requires pandas (which includes necessary C extensions)
-
-**Polars Implementation:**
-- **Expression API:** Used polars expressions like `.select()`, `.filter()`, `.groupby()` for operations
-- **Lazy evaluation:** Implemented `.lazy()` and `.collect()` for query optimization
-- **Arrow integration:** Leveraged columnar format for memory-efficient processing
-- **Type system:** Used polars-specific dtypes and casting methods for consistency
 
 ---
 
@@ -201,17 +133,14 @@ Reserve **Pure Python** for educational purposes to understand underlying statis
 
 | Evaluation Criteria | Pure Python | Pandas      | Polars      |
 |---------------------|-------------|-------------|-------------|
-| **Core Language**   | Python (Interpreted) | C/Cython + Python | Rust + Python bindings |
-| **Ease of Use**     | Low         | High        | Medium-High |
-| **Development Speed** | Slow      | Fast        | Fast        |
-| **Runtime Performance** | Poor    | Good        | Excellent   |
-| **Memory Efficiency** | Poor      | Good        | Excellent   |
-| **Parallelization** | None        | Limited     | Full multi-core |
-| **Debugging Experience** | Difficult | Easy      | Moderate    |
-| **Ecosystem Maturity** | None     | Excellent   | Growing     |
-| **Learning Curve**  | Steep       | Moderate    | Moderate    |
-| **Scalability**     | Limited     | Good        | Excellent   |
-| **Compilation**     | Interpreted | Mixed (C core) | Compiled (Rust) |
+| Ease of Use         | Low         | High        | Medium-High |
+| Development Speed   | Slow        | Fast        | Fast        |
+| Performance         | Poor        | Good        | Excellent   |
+| Debugging Experience| Difficult   | Easy        | Moderate    |
+| Ecosystem Maturity  | None        | Excellent   | Growing     |
+| Learning Curve      | Steep       | Moderate    | Moderate    |
+| Memory Efficiency   | Poor        | Good        | Excellent   |
+| Scalability         | Limited     | Good        | Excellent   |
 
 ---
 
